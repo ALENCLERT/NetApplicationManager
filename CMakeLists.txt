@@ -39,10 +39,17 @@ if(ANDROID)
     main.cpp
   )
 else()
-  add_executable(NetApplicationManager
+  add_executable(NetApplicationManager WIN32
     main.cpp
     ${RESOURCES_CPP}
   )
+endif()
+
+if(WIN32)
+    set(APP_MANIFEST "${CMAKE_SOURCE_DIR}/app.manifest")
+    set(APP_RC "${CMAKE_SOURCE_DIR}/app.rc")
+
+    target_sources(NetApplicationManager PRIVATE ${APP_RC})
 endif()
 
 target_link_libraries(NetApplicationManager PRIVATE Psapi)

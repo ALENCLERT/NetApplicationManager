@@ -7,6 +7,8 @@
 #include <QProcess>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QFile>
+#include <QLineEdit>
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>
@@ -18,6 +20,15 @@ public:
         table->setColumnCount(2);
         table->setHorizontalHeaderLabels({tr("进程名"), tr("路径")});
         table->horizontalHeader()->setStretchLastSection(true);
+        table ->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+        // 搜索框和按钮
+       searchEdit = new QLineEdit;
+       searchEdit->setPlaceholderText(tr("输入进程名搜索..."));
+       QPushButton *searchBtn = new QPushButton(tr("搜索"));
+       QHBoxLayout *searchLayout = new QHBoxLayout;
+       searchLayout->addWidget(searchEdit);
+       searchLayout->addWidget(searchBtn);
 
         QPushButton *refreshBtn = new QPushButton(tr("刷新进程列表"));
         QPushButton *blockBtn   = new QPushButton(tr("阻止网络访问"));
@@ -29,6 +40,7 @@ public:
         btnLayout->addWidget(allowBtn);
 
         QVBoxLayout *mainLayout = new QVBoxLayout;
+        mainLayout->addLayout(searchLayout);
         mainLayout->addWidget(table);
         mainLayout->addLayout(btnLayout);
 
@@ -36,17 +48,33 @@ public:
         central->setLayout(mainLayout);
         setCentralWidget(central);
 
-        setWindowTitle(tr("Firewall App Blocker v1.9"));
+        setWindowTitle(tr("NetApplicationManager v1.0"));
         resize(700, 400);
 
         connect(refreshBtn, &QPushButton::clicked, this, &FirewallAppBlocker::loadProcesses);
         connect(blockBtn,   &QPushButton::clicked, this, &FirewallAppBlocker::blockSelected);
         connect(allowBtn,   &QPushButton::clicked, this, &FirewallAppBlocker::allowSelected);
+        connect(searchBtn,  &QPushButton::clicked, this, &FirewallAppBlocker::searchProcess);
+        connect(searchEdit, &QLineEdit::returnPressed, this, &FirewallAppBlocker::searchProcess);
 
         loadProcesses();
     }
 
 private slots:
+    void searchProcess() {
+        QString keyword = searchEdit->text().trimmed();
+        if (keyword.isEmpty()) return;
+
+        for (int row = 0; row < table->rowCount(); ++row) {
+            QString procName = table->item(row, 0)->text();
+            if (procName.contains(keyword, Qt::CaseInsensitive)) {
+                table->selectRow(row);
+                table->scrollToItem(table->item(row, 0));
+                return;
+            }
+        }
+        QMessageBox::information(this, tr("提示"), tr("未找到匹配的进程"));
+    }
     void loadProcesses() {
         table->setRowCount(0);
 
@@ -109,6 +137,7 @@ private slots:
 
 private:
     QTableWidget *table;
+    QLineEdit *searchEdit;
 
     QString getProcessPath(DWORD pid) {
         QString path;
@@ -122,11 +151,23 @@ private:
         }
         return path;
     }
+
 };
+
+
+void loadStyleSheet(QApplication &app, const QString &sheetName) {
+    QFile file(sheetName);
+    if (file.open(QFile::ReadOnly)) {
+        QString styleSheet = QLatin1String(file.readAll());
+        app.setStyleSheet(styleSheet);
+    }
+}
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/icons/icon.png"));
+
+    loadStyleSheet(app, ":/qss/Ubuntu.qss"); // 从资源文件加载
     FirewallAppBlocker window;
     window.show();
     return app.exec();

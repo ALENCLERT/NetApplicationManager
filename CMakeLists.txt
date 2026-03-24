@@ -24,6 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #    endif()
 #endif()
 
+
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 # 设置Qt资源文件
